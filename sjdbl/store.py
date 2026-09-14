@@ -55,7 +55,7 @@ class EnumerateValue:
         self.start = start
 
 
-class JsonStore:
+class Store:
     def __init__(self, path, models):
         self._path = path
         self._models = {}
