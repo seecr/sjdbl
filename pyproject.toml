@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sjdbl"
+authors = [
+    {name = "Thijs Janssen", email = "thijs@seecr.nl"},
+    {name = "Johan Jonkers", email = "johan@seecr.nl"},
+]
+description = "Seecr Json Database Layer"
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["seecr", "json", "store"]
+license = {file = "LICENSE"}
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "pytest >= 9.1.1, < 10",
+    "setuptools-scm >= 10.2.1, < 11",
+]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+version_file = "sjdbl/_version.py"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.isort]
+profile = "black"
+
+[tool.pytest]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+filterwarnings = [
+    "ignore::DeprecationWarning:importlib._bootstrap",
+]
+addopts = ["-n5"]
+
