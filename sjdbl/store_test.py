@@ -22,7 +22,8 @@
 #
 ## end license ##
 
-from .store import Store, EnumerateValue
+from .store import Store
+from .enumerate import EnumerateValue
 from .field import Field
 from .base import Base
 

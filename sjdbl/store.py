@@ -25,34 +25,11 @@
 import json
 
 from .base import Base, Proxy
-from .utils import mkdir
+from .enumerate import Enumerator
 
 import logging
 
 logger = logging.getLogger(__name__)
-
-
-class Enumerator:
-    def __init__(self, path, start=0):
-        self._path = path
-        if not self._path.exists():
-            self._write_value(start)
-
-    def increment(self):
-        value = int(self._path.read_text())
-        self._write_value(value + 1)
-        return value
-
-    def _write_value(self, value):
-        tmp_path = self._path.with_suffix(".tmp")
-        tmp_path.write_text(str(value))
-        tmp_path.rename(self._path)
-
-
-class EnumerateValue:
-    def __init__(self, name, start=0):
-        self.name = name
-        self.start = start
 
 
 class Store:
