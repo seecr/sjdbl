@@ -20,6 +20,7 @@ classifiers = [
 dependencies = [
     "pytest >= 9.1.1, < 10",
     "setuptools-scm >= 10.2.1, < 11",
+    "lxml"
 ]
 dynamic = ["version"]
 
@@ -36,10 +37,7 @@ include-package-data = true
 profile = "black"
 
 [tool.pytest]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "session"
 filterwarnings = [
     "ignore::DeprecationWarning:importlib._bootstrap",
 ]
-addopts = ["-n5"]
 

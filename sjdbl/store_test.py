@@ -1,28 +1,4 @@
-## begin license ##
-#
-# "Swindl"(Seecr Web Index and Database Lib) combines swl, sil and sdbl
-#
-# Copyright (C) 2026 Seecr (Seek You Too B.V.) https://seecr.nl
-#
-# This file is part of "Swindl"
-#
-# "Swindl" is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# "Swindl" is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with "Swindl"; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-#
-## end license ##
-
-from .jsonstore import JsonStore, EnumerateValue
+from .store import Store, EnumerateValue
 from .field import Field
 from .base import Base
 from .store import HasChangedException
@@ -53,7 +29,7 @@ class Person(Base):
 
 
 def test_enumerator_files(tmp_path):
-    store = JsonStore(path=tmp_path, models=[Person])
+    store = Store(path=tmp_path, models=[Person])
 
     assert (tmp_path / "Person" / "number.enumerator").is_file()
     assert (tmp_path / "Person" / "number.enumerator").read_text() == "0"
@@ -65,7 +41,7 @@ def test_enumerator_files(tmp_path):
 
 
 def test_store_create_and_get(tmp_path):
-    store = JsonStore(path=tmp_path, models=[Person])
+    store = Store(path=tmp_path, models=[Person])
 
     parent = Person.create(
         name="John Smith",
@@ -114,7 +90,7 @@ def test_store_create_and_get(tmp_path):
 
 
 def test_delete_as_object(tmp_path):
-    store = JsonStore(path=tmp_path, models=[Person])
+    store = Store(path=tmp_path, models=[Person])
 
     person = Person.create(name="John Smith", dob=datetime.fromisoformat("2000-01-01"))
     store.put(person)
@@ -128,7 +104,7 @@ def test_delete_as_object(tmp_path):
 
 
 def test_delete_with_qid(tmp_path):
-    store = JsonStore(path=tmp_path, models=[Person])
+    store = Store(path=tmp_path, models=[Person])
 
     person = Person.create(name="John Smith", dob=datetime.fromisoformat("2000-01-01"))
     store.put(person)
@@ -142,7 +118,7 @@ def test_delete_with_qid(tmp_path):
 
 
 def test_list_objects(tmp_path):
-    store = JsonStore(path=tmp_path, models=[Person])
+    store = Store(path=tmp_path, models=[Person])
 
     persons = list(store.list(Person))
     assert len(persons) == 0
