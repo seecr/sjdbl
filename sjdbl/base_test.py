@@ -23,6 +23,10 @@
 ## end license ##
 
 from .base import Base, Field
+from .utils import new_uuid
+
+import copy
+from uuid import UUID
 
 
 def test_update():
@@ -35,3 +39,39 @@ def test_update():
     assert so.update(name="name") is True
     assert so.update(name="name") is False
     assert so.update(name="another name") is True
+
+
+class Book(Base):
+    FIELDS = [Field.str("title"), Field.str("subtitle", default="none")]
+
+
+def test_create_with_none_value():
+    assert Book.create(title="x").subtitle == "none"
+    assert Book.create(title="x", subtitle=None).subtitle is None
+
+
+def test_equality_and_hash():
+    book = Book.create(title="x")
+    other = Book.create(title="x")
+
+    assert book == book
+    assert book != other
+    assert book != "not a book"
+    assert {book, book, other} == {book, other}
+
+
+def test_deepcopy():
+    book = Book.create(title="x")
+    book_copy = copy.deepcopy(book)
+
+    assert book_copy == book
+    assert book_copy is not book
+    book_copy.update(title="y")
+    assert book.title == "x"
+
+
+def test_ids_are_random_uuids():
+    book = Book.create(title="x")
+    assert UUID(book.id).version == 4
+    assert UUID(book.__rev__).version == 4
+    assert UUID(new_uuid()).version == 4

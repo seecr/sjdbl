@@ -23,11 +23,18 @@
 ## end license ##
 
 from .field import Field
-from .utils import new_uuid
 
 __ID__ = "__id__"
 __REV__ = "__rev__"
 __ARCHIVED__ = "__archived__"
+
+
+class HasChangedException(Exception):
+    pass
+
+
+class DanglingReferenceError(ValueError):
+    pass
 
 
 class Base:
@@ -44,8 +51,8 @@ class Base:
         self._data = {field.name: field.default for field in self.FIELDS}
         if values is not None:
             for field in self.FIELDS:
-                if (value := values.get(field.name)) is not None:
-                    self._data[field.name] = value
+                if field.name in values:
+                    self._data[field.name] = values[field.name]
 
     def index_values(self):
         return {}
@@ -84,8 +91,6 @@ class Base:
             if self._data[field.name] != value:
                 self._data[field.name] = value
                 changed = True
-        if changed:
-            self._meta[__REV__] = new_uuid()
         return changed
 
     def delete(self, store):
@@ -102,6 +107,9 @@ class Base:
         store.put(self)
 
     def __getattr__(self, name):
+        if name in ("_meta", "_data"):
+            raise AttributeError(name)
+
         if name.startswith("__") and name in self._meta:
             return self._meta[name]
 
@@ -149,7 +157,13 @@ class Base:
         return obj
 
     def __eq__(self, other):
-        return other.id == self.id if isinstance(other, self.__class__) else False
+        return isinstance(other, (Base, Proxy)) and self.qid == other.qid
+
+    def __hash__(self):
+        return hash(self.qid)
+
+
+META_NAMES = {field.name for field in Base.META}
 
 
 class Proxy:
@@ -159,13 +173,22 @@ class Proxy:
 
     def deproxy(self):
         if (obj := self.store.get(self.qid)) is None:
-            raise ValueError(f"No object to deproxy: {self.qid}")
+            raise DanglingReferenceError(f"No object to deproxy: {self.qid}")
         object.__setattr__(self, "__class__", obj.__class__)
         object.__setattr__(self, "__dict__", obj.__dict__)
 
     def __getattr__(self, name):
+        # qid and store are missing only when built without __init__ (copy, pickle);
+        # loading then would recurse
+        if name in ("qid", "store") or (
+            name.startswith("__") and name.endswith("__") and name not in META_NAMES
+        ):
+            raise AttributeError(name)
         self.deproxy()
         return getattr(self, name)
+
+    def __deepcopy__(self, memo):
+        return Proxy(self.store, self.qid)
 
     def __getitem__(self, name):
         self.deproxy()
@@ -173,3 +196,6 @@ class Proxy:
 
     def __eq__(self, other):
         return isinstance(other, (Base, Proxy)) and self.qid == other.qid
+
+    def __hash__(self):
+        return hash(self.qid)

@@ -25,9 +25,15 @@
 from .store import Store
 from .enumerate import EnumerateValue
 from .field import Field
-from .base import Base
+from .base import Base, Proxy, HasChangedException, DanglingReferenceError
 
+import copy
+import pytest
+from concurrent.futures import ThreadPoolExecutor
+
+import json
 from datetime import datetime
+from decimal import Decimal
 
 from enum import Enum
 
@@ -166,3 +172,284 @@ def test_none_for_uuid(tmp_path):
     person = Person.create(name="John Smith", dob=datetime.fromisoformat("2000-01-01"))
     assert person.gov_id is not None
     assert person.secret_id is None
+
+
+def test_store_decimal(tmp_path):
+    class Product(Base):
+        FIELDS = [Field.decimal("price"), Field.decimal("discount")]
+
+    store = Store(path=tmp_path, models=[Product])
+
+    product = Product.create(price=Decimal("9.95"))
+    store.put(product)
+
+    stored = json.loads((tmp_path / "Product" / f"{product.id}.json").read_text())
+    assert stored["data"] == {"price": "9.95", "discount": None}
+
+    product_again = store.get(product.qid)
+    assert product_again.price == Decimal("9.95")
+    assert isinstance(product_again.price, Decimal)
+    assert product_again.discount is None
+
+
+def test_put_failing_serialization_keeps_stored_object(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+
+    person.update(name={"not", "serializable"})
+    with pytest.raises(TypeError):
+        store.put(person)
+
+    assert store.get(person.qid).name == "John Smith"
+    assert [p.name for p in store.list(Person)] == ["John Smith"]
+    assert sorted(f.name for f in (tmp_path / "Person").iterdir()) == [
+        f"{person.id}.json",
+        "number.enumerator",
+    ]
+
+
+def test_put_failing_write_keeps_stored_object(tmp_path, monkeypatch):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+
+    def failing_fsync(fd):
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr("sjdbl.store.os.fsync", failing_fsync)
+    person.update(name="Jane Smith")
+    with pytest.raises(OSError):
+        store.put(person)
+
+    assert store.get(person.qid).name == "John Smith"
+    assert sorted(f.name for f in (tmp_path / "Person").iterdir()) == [
+        f"{person.id}.json",
+        "number.enumerator",
+    ]
+
+
+def test_put_detects_concurrent_change(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+
+    first = store.get(person.qid)
+    second = store.get(person.qid)
+
+    first.update(name="Jane Smith")
+    store.put(first)
+
+    second.update(name="Joe Smith")
+    with pytest.raises(HasChangedException):
+        store.put(second)
+
+    assert store.get(person.qid).name == "Jane Smith"
+
+    first.update(name="Jane Doe")
+    store.put(first)
+    assert store.get(person.qid).name == "Jane Doe"
+
+
+def test_put_with_conflict_writes_nothing(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    john = Person.create(name="John Smith")
+    jane = Person.create(name="Jane Smith")
+    store.put(john, jane)
+
+    stale_jane = store.get(jane.qid)
+    jane.update(name="Jane Doe")
+    store.put(jane)
+
+    john.update(name="John Doe")
+    stale_jane.update(name="Jane Roe")
+    with pytest.raises(HasChangedException):
+        store.put(john, stale_jane)
+
+    assert store.get(john.qid).name == "John Smith"
+    assert store.get(jane.qid).name == "Jane Doe"
+
+
+def test_archive_changes_revision(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+    stale = store.get(person.qid)
+
+    person.mark_archived(store)
+    assert store.get(person.qid).is_archived is True
+    assert store.get(person.qid).__rev__ != stale.__rev__
+
+    with pytest.raises(HasChangedException):
+        stale.mark_archived(store, archived=False)
+
+
+def test_proxy_equality_and_hash(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    parent = Person.create(name="John Smith")
+    child = Person.create(name="Joe Smith", parent=parent)
+    store.put(parent, child)
+
+    proxy = store.get(child.qid).parent
+    assert isinstance(proxy, Proxy)
+    assert parent == proxy
+    assert proxy == parent
+    assert hash(parent) == hash(proxy)
+    # comparing and hashing must not load the proxy
+    assert isinstance(proxy, Proxy)
+
+
+def test_proxy_dunder_lookup_does_not_load(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    parent = Person.create(name="John Smith")
+    child = Person.create(name="Joe Smith", parent=parent)
+    store.put(parent, child)
+
+    proxy = store.get(child.qid).parent
+    assert not hasattr(proxy, "__html__")
+    assert isinstance(proxy, Proxy)
+
+    assert proxy.__id__ == parent.__id__
+    assert isinstance(proxy, Person)
+
+
+def test_dangling_reference(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    parent = Person.create(name="John Smith")
+    child = Person.create(name="Joe Smith", parent=parent)
+    store.put(child)
+
+    proxy = store.get(child.qid).parent
+    assert not hasattr(proxy, "__html__")
+    with pytest.raises(DanglingReferenceError):
+        proxy.name
+
+
+def test_deepcopy_with_proxy(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    parent = Person.create(name="John Smith")
+    child = Person.create(name="Joe Smith", parent=parent)
+    store.put(parent, child)
+
+    child_copy = copy.deepcopy(store.get(child.qid))
+    assert child_copy.parent.store is store
+    assert child_copy.parent.name == "John Smith"
+
+
+def test_xml_none(tmp_path):
+    class Doc(Base):
+        FIELDS = [Field.xml("content")]
+
+    store = Store(path=tmp_path, models=[Doc])
+
+    doc = Doc()
+    assert doc.content is None
+    store.put(doc)
+    assert store.get(doc.qid).content is None
+
+
+def test_revision_changes_on_put_not_on_update(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    rev = person.__rev__
+
+    person.update(name="Jane Smith")
+    assert person.__rev__ == rev
+
+    store.put(person)
+    assert person.__rev__ != rev
+    assert store.get(person.qid).__rev__ == person.__rev__
+
+
+def test_failed_put_keeps_revision(tmp_path, monkeypatch):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+    rev = person.__rev__
+
+    def failing_fsync(fd):
+        raise OSError("No space left on device")
+
+    monkeypatch.setattr("sjdbl.store.os.fsync", failing_fsync)
+    person.update(name="Jane Smith")
+    with pytest.raises(OSError):
+        store.put(person)
+    assert person.__rev__ == rev
+
+    monkeypatch.undo()
+    store.put(person)
+    assert store.get(person.qid).name == "Jane Smith"
+
+
+def test_put_failing_serialization_writes_nothing(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    john = Person.create(name="John Smith")
+    jane = Person.create(name="Jane Smith")
+    store.put(john, jane)
+
+    john.update(name="John Doe")
+    jane.update(name={"not", "serializable"})
+    with pytest.raises(TypeError):
+        store.put(john, jane)
+
+    assert store.get(john.qid).name == "John Smith"
+
+
+def test_concurrent_puts_of_same_version(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+
+    copies = [store.get(person.qid) for _ in range(8)]
+    for i, copy_ in enumerate(copies):
+        copy_.update(name=f"Name {i}")
+
+    def put(obj):
+        try:
+            store.put(obj)
+            return True
+        except HasChangedException:
+            return False
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        results = list(executor.map(put, copies))
+
+    assert results.count(True) == 1
+
+
+def test_stored_file_is_indented(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    person = Person.create(name="John Smith")
+    store.put(person)
+
+    lines = (tmp_path / "Person" / f"{person.id}.json").read_text().splitlines()
+    assert lines[0] == "{"
+    assert '    "name": "John Smith",' in lines
+
+
+def test_archive_through_object_and_store(tmp_path):
+    store = Store(path=tmp_path, models=[Person])
+
+    john = Person.create(name="John Smith")
+    jane = Person.create(name="Jane Smith")
+    store.put(john, jane)
+
+    john.archive(store)
+    store.archive(jane)
+
+    assert store.get(john.qid).is_archived is True
+    assert store.get(jane.qid).is_archived is True

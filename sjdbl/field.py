@@ -23,6 +23,7 @@
 ## end license ##
 
 from datetime import datetime
+from decimal import Decimal
 from .utils import new_uuid
 import json
 
@@ -89,11 +90,15 @@ class Field:
         )
 
     @classmethod
-    def xml(cls, name, default=list):
+    def xml(cls, name, default=None):
         return cls(
             name=name,
             default=default,
-            to_storage=lambda x: tostring(x, pretty_print=True, encoding="unicode"),
+            to_storage=lambda x: (
+                None
+                if x is None
+                else tostring(x, pretty_print=True, encoding="unicode")
+            ),
             from_storage=lambda store, v: v and parse_xml(StringIO(v)),
         )
 
@@ -106,6 +111,15 @@ class Field:
             from_storage=lambda store, v: (
                 datetime.fromisoformat(v) if v is not None else None
             ),
+        )
+
+    @classmethod
+    def decimal(cls, name, default=None):
+        return cls(
+            name=name,
+            default=default,
+            to_storage=lambda d: None if d is None else str(d),
+            from_storage=lambda store, v: None if v is None else Decimal(v),
         )
 
     @classmethod

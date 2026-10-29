@@ -31,4 +31,4 @@ def mkdir(path):
 
 
 def new_uuid():
-    return str(uuid.uuid1())
+    return str(uuid.uuid4())
