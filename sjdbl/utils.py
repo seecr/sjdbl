@@ -22,6 +22,7 @@
 #
 ## end license ##
 
+import os
 import uuid
 
 
@@ -32,3 +33,13 @@ def mkdir(path):
 
 def new_uuid():
     return str(uuid.uuid4())
+
+
+def fsync_dir(path):
+    """Make a rename or delete in the directory durable (it is only atomic until a
+    power failure otherwise)."""
+    fd = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)

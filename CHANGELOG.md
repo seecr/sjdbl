@@ -39,6 +39,15 @@ and the other way around.
 
 ### Fixed
 
+- A qid is checked before it is used as a file name. `get()` returns `None` and
+  `delete()` raises `ValueError` for a qid of an unknown class or with a path
+  in it (`Person:../User/<id>`, `Person:../../file`): qids come from forms and
+  urls and could read or delete other files.
+- `Field.collection` gives every object its own list; the default list was
+  shared by all new objects.
+- `Field.enum` stores and loads `None`.
+- After a write or delete the directory is `fsync`ed as well, so the change
+  survives a power failure.
 - `Store.put()` writes atomically (temporary file, `fsync`, rename). A failing
   write or an unserializable value no longer leaves an empty file behind,
   which also broke `list()`.

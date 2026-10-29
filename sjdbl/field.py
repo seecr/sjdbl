@@ -135,15 +135,15 @@ class Field:
         return cls(
             name=name,
             default=default,
-            to_storage=lambda e: e.value,
-            from_storage=lambda store, v: enum(v),
+            to_storage=lambda e: None if e is None else e.value,
+            from_storage=lambda store, v: None if v is None else enum(v),
         )
 
     @classmethod
     def collection(cls, name):
         return cls(
             name,
-            default=[],
+            default=list,
             to_storage=lambda items: [item.qid for item in items],
             from_storage=lambda store, qid_list: [store.proxy(qid) for qid in qid_list],
         )

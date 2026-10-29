@@ -25,6 +25,8 @@
 import os
 import threading
 
+from .utils import fsync_dir
+
 
 class Enumerator:
     def __init__(self, path, start=0):
@@ -46,6 +48,7 @@ class Enumerator:
             fp.flush()
             os.fsync(fp.fileno())
         tmp_path.replace(self._path)
+        fsync_dir(self._path.parent)
 
 
 class EnumerateValue:

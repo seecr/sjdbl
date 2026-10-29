@@ -453,3 +453,56 @@ def test_archive_through_object_and_store(tmp_path):
 
     assert store.get(john.qid).is_archived is True
     assert store.get(jane.qid).is_archived is True
+
+
+class Secret(Base):
+    FIELDS = [Field.str("value")]
+
+
+def test_qid_cannot_reach_other_files(tmp_path):
+    store = Store(path=tmp_path / "data", models=[Person, Secret])
+    secret = Secret.create(value="secret")
+    store.put(secret)
+    (tmp_path / "outside.json").write_text(
+        json.dumps({"data": {"name": "outside"}, "meta": {}})
+    )
+
+    for qid in [
+        f"Person:../Secret/{secret.id}",
+        "Person:../../outside",
+        "Person:..\\..\\outside",
+        "Person:",
+        "Person",
+        "Unknown:abc",
+        f"{secret.qid}:extra",
+    ]:
+        assert store.get(qid) is None, qid
+
+    with pytest.raises(ValueError):
+        store.delete("Person:../../outside")
+    assert (tmp_path / "outside.json").exists()
+    assert store.get(secret.qid).value == "secret"
+
+
+def test_collection_default_is_not_shared():
+    class Group(Base):
+        FIELDS = [Field.collection("members")]
+
+    first, second = Group.create(), Group.create()
+    first.members.append(second)
+    assert Group.create().members == []
+    assert second.members == []
+
+
+def test_enum_none(tmp_path):
+    class Shirt(Base):
+        FIELDS = [Field.enum("gender", GenderEnum, default=None)]
+
+    store = Store(path=tmp_path, models=[Shirt])
+    shirt = Shirt.create()
+    store.put(shirt)
+    assert store.get(shirt.qid).gender is None
+
+    shirt.update(gender=GenderEnum.male)
+    store.put(shirt)
+    assert store.get(shirt.qid).gender is GenderEnum.male

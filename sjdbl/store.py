@@ -27,7 +27,7 @@ import os
 import threading
 
 from .base import Base, Proxy, HasChangedException, __REV__
-from .utils import new_uuid
+from .utils import new_uuid, fsync_dir
 from .enumerate import Enumerator
 
 import logging
@@ -66,7 +66,16 @@ class Store:
         return self._enumerators.get(model.__name__, {}).get(name)
 
     def _file_for_qid(self, qid):
-        cls, uuid = qid.split(":", 1)
+        """The file of a qid. Raises ValueError for a qid that is not one of this
+        store: qids come from forms and urls, so they must never reach other files."""
+        cls, sep, uuid = qid.partition(":")
+        if (
+            not sep
+            or cls not in self._models
+            or uuid in ("", ".", "..")
+            or any(c in uuid for c in "/\\:\0")
+        ):
+            raise ValueError(f"Invalid qid: {qid!r}")
         return self._path / cls / f"{uuid}.json"
 
     def put(self, *objs):
@@ -94,6 +103,7 @@ class Store:
                     fp.flush()
                     os.fsync(fp.fileno())
                 tmp_file.replace(file)
+                fsync_dir(file.parent)
             finally:
                 tmp_file.unlink(missing_ok=True)
             obj._meta[__REV__] = new_rev
@@ -103,7 +113,11 @@ class Store:
             return json.loads(file.read_text())["meta"][__REV__]
 
     def get(self, qid):
-        if (file := self._file_for_qid(qid)).exists():
+        try:
+            file = self._file_for_qid(qid)
+        except ValueError:
+            return None  # not a qid of this store, so it does not exist
+        if file.exists():
             cls, _ = qid.split(":", 1)
             return self._from_file(self._models[cls], file)
 
@@ -114,6 +128,7 @@ class Store:
         with self._lock:
             if (file := self._file_for_qid(self._qid(obj))).exists():
                 file.unlink()
+                fsync_dir(file.parent)
 
     def list(self, cls):
         model_name = cls.__name__
