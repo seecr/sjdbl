@@ -56,4 +56,5 @@ The sjdbl installed in site-packages may be an older release; use
 - Code style: black, isort with the black profile.
 - Tests live next to the code (`*_test.py`), are plain pytest functions and
   use `tmp_path` for stores.
-- Commit messages: initials prefix, e.g. `JJ: short description`.
+- When Johan is working with Claude, commit messages start with `JJ: `; other people's
+  commits don't need it.
