@@ -76,6 +76,16 @@ for person in store.list(Person):
 store.delete(again)               # or store.delete(again.qid)
 ```
 
+Many puts at once (bulk loading) are much faster in a batch: one sync to disk
+at the end instead of one per file. Inside the batch `get()` sees what was
+put; an exception discards the whole batch.
+
+```python
+with store.batch():
+    for name in names:
+        store.put(Person.create(name=name))
+```
+
 `john` is stored in `data/Person/<id>.json`:
 
 ```json

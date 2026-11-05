@@ -28,6 +28,11 @@ and the other way around.
 
 ### Added
 
+- `Store.batch()`: a context manager for bulk loading. Puts inside it are
+  checked and serialized as usual but written at the end, with one sync to
+  disk for the whole batch instead of an fsync per file. `get()` sees the
+  objects put in the batch; an exception discards the batch.
+
 - `Field.decimal`, stored as a string to keep the exact value.
 - `HasChangedException` and `DanglingReferenceError` in `sjdbl.base`.
   `DanglingReferenceError` is a subclass of `ValueError`, which was raised
