@@ -22,13 +22,13 @@
 #
 ## end license ##
 
-from .base import Base, Field
-from .utils import new_uuid
-
 import copy
+from uuid import UUID
 
 import pytest
-from uuid import UUID
+
+from .base import Base, Field
+from .utils import new_uuid
 
 
 def test_update():

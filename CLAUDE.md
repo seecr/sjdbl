@@ -17,8 +17,12 @@ rebuilt from `Store.list()`. See README.md for the user-facing docs.
 
 ```sh
 pytest sjdbl                              # run the tests
+flake8 sjdbl examples && isort --check-only sjdbl examples
 PYTHONPATH=. python examples/basic.py     # run an example against this checkout
 ```
+
+`env/` is the virtualenv (see the seecr-python rebuild-venv skill), with
+`requirements-dev.txt` (flake8, isort).
 
 The sjdbl installed in site-packages may be an older release; use
 `PYTHONPATH=.` (or `pip install -e .`) to test this checkout.
@@ -69,6 +73,10 @@ The sjdbl installed in site-packages may be an older release; use
 
 - Every source file starts with the SJDBL license header (copy it from
   `sjdbl/base.py`); `doc/license.conf` describes it.
-- Code style: black, isort with the black profile.
+- Code style: black, isort with the black profile (`pyproject.toml`), flake8 (`.flake8`);
+  lines up to 88.
+- Before every push: flake8, isort and the tests must pass. The pre-push hook
+  (`.githooks/pre-push`, on with `git config core.hooksPath .githooks`, once per clone)
+  runs them and stops the push otherwise; `git push --no-verify` skips it.
 - Tests live next to the code (`*_test.py`), are plain pytest functions and
   use `tmp_path` for stores.

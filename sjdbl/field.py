@@ -22,13 +22,15 @@
 #
 ## end license ##
 
+import json
 from datetime import datetime
 from decimal import Decimal
-from .utils import new_uuid
-import json
-
-from lxml.etree import tostring, parse as parse_xml
 from io import StringIO
+
+from lxml.etree import parse as parse_xml
+from lxml.etree import tostring
+
+from .utils import new_uuid
 
 ATTR_READONLY = "readonly"
 

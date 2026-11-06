@@ -22,12 +22,12 @@
 #
 ## end license ##
 
-from .enumerate import EnumerateValue, Enumerator
-from .store import Store
-from .base import Base
-from .field import Field
-
 from concurrent.futures import ThreadPoolExecutor
+
+from .base import Base
+from .enumerate import EnumerateValue, Enumerator
+from .field import Field
+from .store import Store
 
 
 class Person(Base):
@@ -57,7 +57,8 @@ def test_increment_from_threads(tmp_path):
         return [enumerator.increment() for _ in range(25)]
 
     with ThreadPoolExecutor(max_workers=8) as executor:
-        results = [f.result() for f in [executor.submit(increment_many) for _ in range(8)]]
+        futures = [executor.submit(increment_many) for _ in range(8)]
+        results = [f.result() for f in futures]
 
     numbers = [n for result in results for n in result]
     assert sorted(numbers) == list(range(200))

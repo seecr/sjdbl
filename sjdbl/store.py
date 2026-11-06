@@ -23,15 +23,14 @@
 ## end license ##
 
 import json
+import logging
 import os
 import threading
 from contextlib import contextmanager
 
-from .base import Base, Proxy, HasChangedException, __REV__
-from .utils import new_uuid, fsync_dir
+from .base import __REV__, Base, HasChangedException, Proxy
 from .enumerate import Enumerator
-
-import logging
+from .utils import fsync_dir, new_uuid
 
 logger = logging.getLogger(__name__)
 

@@ -22,20 +22,19 @@
 #
 ## end license ##
 
-from .store import Store
-from .enumerate import EnumerateValue
-from .field import Field
-from .base import Base, Proxy, HasChangedException, DanglingReferenceError
-
 import copy
-import pytest
-from concurrent.futures import ThreadPoolExecutor
-
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from decimal import Decimal
-
 from enum import Enum
+
+import pytest
+
+from .base import Base, DanglingReferenceError, HasChangedException, Proxy
+from .enumerate import EnumerateValue
+from .field import Field
+from .store import Store
 
 
 class GenderEnum(Enum):
@@ -126,7 +125,7 @@ def test_delete_as_object(tmp_path):
     store.put(person)
 
     person_revisited = store.get(person.qid)
-    assert not person_revisited is None
+    assert person_revisited is not None
 
     store.delete(person)
     person_revisited = store.get(person.qid)
@@ -140,7 +139,7 @@ def test_delete_with_qid(tmp_path):
     store.put(person)
 
     person_revisited = store.get(person.qid)
-    assert not person_revisited is None
+    assert person_revisited is not None
 
     store.delete(person.qid)
     person_revisited = store.get(person.qid)
