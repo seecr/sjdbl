@@ -26,6 +26,8 @@ from .base import Base, Field
 from .utils import new_uuid
 
 import copy
+
+import pytest
 from uuid import UUID
 
 
@@ -75,3 +77,37 @@ def test_ids_are_random_uuids():
     assert UUID(book.id).version == 4
     assert UUID(book.__rev__).version == 4
     assert UUID(new_uuid()).version == 4
+
+
+def test_field_defined_twice():
+    with pytest.raises(TypeError, match="Twice: field 'name' is defined twice"):
+
+        class Twice(Base):
+            FIELDS = [Field.str("name"), Field.str("name")]
+
+
+def test_inherited_fields_are_not_merged():
+    class Parent(Base):
+        FIELDS = [Field.str("name")]
+
+    class Child(Parent):
+        FIELDS = Parent.FIELDS + [Field.int("age")]
+
+    assert [f.name for f in Child.FIELDS] == ["name", "age"]
+    assert Child.create(name="x", age=3).age == 3
+
+
+@pytest.mark.parametrize(
+    "name", ["id", "qid", "qrid", "type_name", "update", "delete", "create",
+             "is_archived", "index_values", "to_storage", "__id__", "__rev__",
+             "__archived__", "_data", "FIELDS", "__init__"]
+)
+def test_field_clashes_with_base(name):
+    with pytest.raises(TypeError, match=f"field '{name}' clashes"):
+
+        class Clash(Base):
+            FIELDS = [Field.str(name)]
+
+
+def test_base_has_no_index():
+    assert not hasattr(Base, "INDEX")

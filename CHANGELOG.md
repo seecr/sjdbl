@@ -1,6 +1,24 @@
 # Changelog
 
-## Unreleased (0.2.0)
+## 0.3.0 (unreleased)
+
+### Breaking changes
+
+- The fields of a model are checked when its class is defined: a `TypeError` for a field
+  name that is used twice, or that clashes with an attribute of `Base` (`id`, `qid`,
+  `update`, `create`, `index_values`, `__id__`, ...). Such a field used to be silently
+  hidden behind the attribute.
+- `Base` no longer has `INDEX = []`: sjdbl never used it. Indexing belongs to swindl, whose
+  `Base` has it.
+
+### Added
+
+- `Store.batch()`: a context manager for bulk loading. Puts inside it are
+  checked and serialized as usual but written at the end, with one sync to
+  disk for the whole batch instead of an fsync per file. `get()` sees the
+  objects put in the batch; an exception discards the batch.
+
+## 0.2.0 (2026-10-30)
 
 The file format is unchanged: files written by 0.1.0 are read by this version
 and the other way around.
@@ -27,11 +45,6 @@ and the other way around.
   instead of uuid1. Existing uuid1 ids stay valid.
 
 ### Added
-
-- `Store.batch()`: a context manager for bulk loading. Puts inside it are
-  checked and serialized as usual but written at the end, with one sync to
-  disk for the whole batch instead of an fsync per file. `get()` sees the
-  objects put in the batch; an exception discards the batch.
 
 - `Field.decimal`, stored as a string to keep the exact value.
 - `HasChangedException` and `DanglingReferenceError` in `sjdbl.base`.

@@ -56,6 +56,17 @@ Available field types:
 
 A callable default (such as `list`) is called for every new object.
 
+The fields are checked when the class is defined: a `TypeError` for a name that is used
+twice, or that is an attribute of `Base` (`id`, `qid`, `update`, `create`, `__id__`, ...).
+Such a field would silently be hidden behind that attribute.
+
+A subclass lists all its fields, including the inherited ones; they are not merged:
+
+```python
+class Employee(Person):
+    FIELDS = Person.FIELDS + [Field.str("department")]
+```
+
 ## Storing and loading
 
 ```python

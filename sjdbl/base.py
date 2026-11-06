@@ -44,7 +44,10 @@ class Base:
         Field.bool(__ARCHIVED__, default=False),
     ]
     FIELDS = []
-    INDEX = []
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        _check_fields(cls)
 
     def __init__(self, values=None):
         self._meta = {field.name: field.default for field in self.META}
@@ -164,6 +167,24 @@ class Base:
 
 
 META_NAMES = {field.name for field in Base.META}
+
+# Names a field cannot have: attribute access to fields goes through __getattr__, which
+# only runs when normal lookup fails, so a field with one of these names is never seen.
+RESERVED_NAMES = set(dir(Base)) | META_NAMES | {"_meta", "_data"}
+
+
+def _check_fields(cls):
+    """Raises TypeError, at class definition, for a field that would not work."""
+    seen = set()
+    for field in cls.FIELDS:
+        if field.name in seen:
+            raise TypeError(f"{cls.__name__}: field {field.name!r} is defined twice")
+        seen.add(field.name)
+        if field.name in RESERVED_NAMES:
+            raise TypeError(
+                f"{cls.__name__}: field {field.name!r} clashes with an attribute "
+                "of Base"
+            )
 
 
 class Proxy:

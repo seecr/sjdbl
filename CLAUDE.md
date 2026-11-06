@@ -57,6 +57,9 @@ The sjdbl installed in site-packages may be an older release; use
   renamed into place before its contents are synced.
 - `__rev__` changes in `put()`, never in `update()`.
 - `Base` and `Proxy` compare and hash by `qid`.
+- `Base.__init_subclass__` checks `FIELDS` at class definition (no duplicate names, no
+  name of a `Base` attribute or meta field). Inherited `FIELDS` are not merged: models
+  write `Parent.FIELDS + [...]`. `Base` has no `INDEX`; that is swindl's.
 - `Proxy.__getattr__` must not load for dunder names (except the meta names
   `__id__`, `__rev__`, `__archived__`) or for `qid`/`store`.
 - The stored file format (`{"data": ..., "meta": ...}`) must stay readable by
