@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 (2026-11-10)
+
+### Changed
+
+- `lxml` is pinned (`>= 6.1.3, < 7`), like the other dependencies.
+- A pre-push hook (`.githooks/pre-push`) runs flake8, isort and the tests; imports are
+  sorted and flake8 passes. No change in behaviour.
+
 ## 0.3.0 (2026-11-06)
 
 ### Breaking changes

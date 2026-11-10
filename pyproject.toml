@@ -18,9 +18,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 dependencies = [
+    "lxml >= 6.1.3, < 7",
     "pytest >= 9.1.1, < 10",
     "setuptools-scm >= 10.2.1, < 11",
-    "lxml"
 ]
 dynamic = ["version"]
 
