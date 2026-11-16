@@ -24,6 +24,11 @@ Crash-safe transactions.
 - No more `os.sync()` (it synced every file system on the machine, also other
   applications' files): each temporary file and directory is synced on its own.
 
+### Documentation
+
+- The reference moved from `README.md` to `doc/reference.md`; the README is a short
+  introduction. `LICENSE` (GPLv2) added.
+
 ### Upgrading
 
 - `with store.batch():` becomes `with store.transaction():`. An exception in the block

@@ -1,8 +1,9 @@
 # sjdbl – Seecr Json Database Lib
 
 Stores Python objects as plain JSON files: `<path>/<ClassName>/<id>.json`.
-Storage only; searching is done by a separate index (swindl, Lucene) that is
-rebuilt from `Store.list()`. See README.md for the user-facing docs.
+Storage only; searching is done by a separate index (swindl, with sil) that is
+rebuilt from `Store.list()`. `doc/reference.md` is the user-facing reference (README.md the short
+introduction); keep it in step with the code.
 
 ## Layout
 
