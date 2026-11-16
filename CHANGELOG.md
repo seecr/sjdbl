@@ -21,6 +21,9 @@ Crash-safe transactions.
 
 ### Changed
 
+- `get()` is about twice as fast (15 instead of 30 µs here): one `open()` instead of
+  `exists()` and `open()`, plain strings instead of `Path` objects, and loading an
+  object no longer computes the defaults (such as new uuids) of the fields it has.
 - The wheel only has the package itself (`sjdbl/`); it used to install `doc/`, `examples/` and
   other directories of the repository into site-packages too.
 - No more `os.sync()` (it synced every file system on the machine, also other

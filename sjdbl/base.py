@@ -39,6 +39,9 @@ class Base:
         _check_fields(cls)
 
     def __init__(self, values=None):
+        if isinstance(values, _Loaded):  # from_storage: the values are complete
+            self._meta, self._data = values.meta, values.data
+            return
         self._meta = {field.name: field.default for field in self.META}
         self._data = {field.name: field.default for field in self.FIELDS}
         if values is not None:
@@ -131,28 +134,41 @@ class Base:
 
     @classmethod
     def from_storage(cls, store, record):
-        obj = cls()
-        obj._meta.update(
-            {
-                field.name: field.from_storage(store, record["meta"][field.name])
-                for field in cls.META
-                if field.name in record["meta"]
-            }
+        # Defaults only for what the record lacks: computing all of them first (a new
+        # uuid for __id__ and __rev__, among others) took half the time of a load.
+        # Through cls(), so a model's own __init__ still runs.
+        return cls(
+            values=_Loaded(
+                _values(cls.META, store, record["meta"]),
+                _values(cls.FIELDS, store, record["data"]),
+            )
         )
-        obj._data.update(
-            {
-                field.name: field.from_storage(store, record["data"][field.name])
-                for field in cls.FIELDS
-                if field.name in record["data"]
-            }
-        )
-        return obj
 
     def __eq__(self, other):
         return isinstance(other, (Base, Proxy)) and self.qid == other.qid
 
     def __hash__(self):
         return hash(self.qid)
+
+
+class _Loaded:
+    """The complete values of a stored object, for Base.__init__ (see from_storage)."""
+
+    __slots__ = ("meta", "data")
+
+    def __init__(self, meta, data):
+        self.meta, self.data = meta, data
+
+
+def _values(fields, store, stored):
+    return {
+        field.name: (
+            field.from_storage(store, stored[field.name])
+            if field.name in stored
+            else field.default
+        )
+        for field in fields
+    }
 
 
 META_NAMES = {field.name for field in Base.META}

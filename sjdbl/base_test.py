@@ -100,3 +100,32 @@ def test_field_clashes_with_base(name):
 
 def test_base_has_no_index():
     assert not hasattr(Base, "INDEX")
+
+
+def test_loading_runs_init_and_fills_in_missing_fields(tmp_path):
+    """from_storage builds the object through the model's own __init__, and gives a
+    field that the stored file lacks (added to the model later) its default."""
+    from .store import Store
+
+    class Note(Base):
+        FIELDS = [Field.str("text")]
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.cache = "made by __init__"
+
+    store = Store(path=tmp_path, models=[Note])
+    note = Note.create(text="hello")
+    store.put(note)
+
+    class Note(Base):  # the next version of the model: a new field
+        FIELDS = [Field.str("text"), Field.json("tags", default=list)]
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.cache = "made by __init__"
+
+    again = Store(path=tmp_path, models=[Note]).get(note.qid)
+    assert again.text == "hello" and again.tags == [] and again.id == note.id
+    assert again.cache == "made by __init__"
+    assert again.__rev__ == note.__rev__

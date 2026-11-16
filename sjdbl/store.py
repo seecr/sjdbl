@@ -41,6 +41,7 @@ class Store:
 
     def __init__(self, path, models):
         self._path = path
+        self._dir = os.fspath(path)
         self._models = {}
         self._enumerators = {}
         self._lock = threading.RLock()
@@ -81,6 +82,11 @@ class Store:
     def _file_for_qid(self, qid):
         """The file of a qid. Raises ValueError for a qid that is not one of this
         store: qids come from forms and urls, so they must never reach other files."""
+        cls, uuid = self._check_qid(qid)
+        return self._path / cls / f"{uuid}.json"
+
+    def _check_qid(self, qid):
+        """(class name, uuid) of a qid of this store; ValueError for anything else."""
         cls, sep, uuid = qid.partition(":")
         if (
             not sep
@@ -89,7 +95,7 @@ class Store:
             or any(c in uuid for c in "/\\:\0")
         ):
             raise ValueError(f"Invalid qid: {qid!r}")
-        return self._path / cls / f"{uuid}.json"
+        return cls, uuid
 
     # --- transactions ---
 
@@ -289,17 +295,22 @@ class Store:
 
     def get(self, qid):
         try:
-            file = self._file_for_qid(qid)
+            cls, uuid = self._check_qid(qid)
         except ValueError:
             return None  # not a qid of this store, so it does not exist
-        cls, _ = qid.split(":", 1)
         tx = self._transaction_of_this_thread()
         if tx is not None and qid in tx:
             if (data := tx[qid]) is None:
                 return None
             return self._models[cls].from_storage(self, json.loads(data))
-        if file.exists():
-            return self._from_file(self._models[cls], file)
+        # plain strings and one open() instead of Path objects and exists(): a get is
+        # the most frequent thing a store does (every object of a page of results)
+        try:
+            with open(os.path.join(self._dir, cls, uuid + ".json")) as fp:
+                record = json.loads(fp.read())
+        except FileNotFoundError:
+            return None
+        return self._models[cls].from_storage(self, record)
 
     def list(self, cls):
         model_name = cls.__name__
