@@ -36,5 +36,5 @@ with store.transaction():                    # all of it, or nothing
 `doc/reference.md` is the reference; `examples/` has runnable scripts
 (`PYTHONPATH=. python examples/basic.py`); `CHANGELOG.md` says what changed.
 
-Python 3.11 or newer and lxml. GPLv2 or later, see `LICENSE`. By
+Python 3.11 or newer and lxml. MIT licensed, see `LICENSE`. By
 [Seecr](https://seecr.nl).

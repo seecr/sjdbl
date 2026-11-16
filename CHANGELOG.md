@@ -29,7 +29,11 @@ Crash-safe transactions.
 ### Documentation
 
 - The reference moved from `README.md` to `doc/reference.md`; the README is a short
-  introduction. `LICENSE` (GPLv2) added.
+  introduction.
+
+### License
+
+- sjdbl is now MIT licensed (was GPLv2), like SWL; `LICENSE` added.
 
 ### Upgrading
 
