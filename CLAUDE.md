@@ -9,7 +9,7 @@ rebuilt from `Store.list()`. See README.md for the user-facing docs.
 - `sjdbl/base.py` – `Base` (models), `Proxy` (lazy references), exceptions
 - `sjdbl/field.py` – `Field` types with `to_storage`/`from_storage`
 - `sjdbl/store.py` – `Store`: put/get/list/delete/archive, revision check,
-  `batch()` for bulk loading
+  `transaction()`, the commit (with `commit.log`) and recovery at open
 - `sjdbl/enumerate.py` – `Enumerator` for sequential numbers
 - `examples/` – runnable scripts; `CHANGELOG.md` – keep it updated
 
@@ -32,14 +32,19 @@ The sjdbl installed in site-packages may be an older release; use
 - Plain-text, indented JSON files; no binary format. Small-file overhead is
   handled by the file system choice.
 - Single process only. Thread safety comes from one `threading.RLock` per
-  `Store` (put/delete/batch; re-entrant so batches can nest) and a lock per
-  `Enumerator`.
-- `Store.batch()` is optional: code that doesn't use it behaves as before.
-  A batch holds the store's lock until it ends (other threads' put/delete
-  wait), writes everything at the end with `os.sync()` before and after the
-  renames (one sync for the batch instead of an fsync per file), and makes
-  objects durable at the end of the batch, not per `put()`. Used for bulk
-  loading, e.g. harvesting.
+  `Store` (put/delete/transaction; re-entrant so transactions can nest) and a
+  lock per `Enumerator`.
+- Every change is a transaction (`put`/`delete` alone are one each). A
+  transaction holds the store's lock until it ends and commits via `_commit`:
+  temp files synced, then (more than one file) `commit.log` synced = the commit
+  point, then renames/unlinks, directory fsyncs, log removed. No `os.sync()`: it
+  syncs every file system on the machine.
+- Recovery (finish `commit.log`, remove stray `*.tmp`) runs in `Store.__init__`,
+  once per process per directory (`_opened`): a second Store on the same
+  directory must not remove the temp files of a commit in progress. Finishing a
+  commit is part of the transaction, not "self-healing".
+- No in-memory revision cache: reading a file's revision costs microseconds,
+  the fsync milliseconds (measured in the swindl benchmarks).
 - `list()` reads every file; it exists for offline reindexing, not searching.
 - `Field.json` stores JSON as a string inside the record. It is used in
   production data, so changing it needs a migration.
@@ -52,13 +57,18 @@ The sjdbl installed in site-packages may be an older release; use
 - `put()` checks the revision on disk against `obj.__rev__` for every object,
   serializes all of them, and only then writes. A conflict or serialization
   error must leave every file untouched.
-- Writes are atomic: temp file, flush, `fsync`, `replace`. The object's
-  in-memory `__rev__` is only updated after a successful write. In a batch
-  `__rev__` changes at `put()` (so `get()` / `put()` again within the batch
-  work) and is set back to the old one if the batch fails or is discarded.
-- A batch: `get()` sees objects put in it, `list()` does not; an exception
-  inside it discards the whole batch (nothing written); a file is never
-  renamed into place before its contents are synced.
+- A transaction is in the files completely or not at all, also after a crash.
+  A file is never renamed into place before its contents are synced, and
+  nothing is renamed or removed before the commit point. Temp files are only
+  removed by a failure before the commit point, or by recovery.
+- `__rev__` changes at `put()` (so `get()` / `put()` again within a
+  transaction work) and is set back to the old one if the transaction is
+  discarded or fails before its commit point; after the commit point it stays
+  (recovery will write that revision).
+- In a transaction: `get()` of the owning thread sees its puts and deletes,
+  other threads and `list()` don't; an exception inside it discards it.
+- The commit log names files relative to the store (`Item/<id>.json`), not
+  qids; recovery refuses entries that leave the store.
 - `__rev__` changes in `put()`, never in `update()`.
 - `Base` and `Proxy` compare and hash by `qid`.
 - `Base.__init_subclass__` checks `FIELDS` at class definition (no duplicate names, no

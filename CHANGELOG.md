@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.4.0 (2026-11-16)
+
+Crash-safe transactions.
+
+### Breaking changes
+
+- `Store.batch()` is replaced by `Store.transaction()`. It does what a batch did, and
+  more: deletes in the block are part of it too (a batch deleted at once), and other
+  threads' `get()` no longer sees its changes before the end.
+
+### Added
+
+- `Store.transaction()`: all puts and deletes of the block are written at its end, or
+  none of them. See "Transactions" in the README.
+- Crash safety: a transaction with more than one file is committed with a commit log
+  (`commit.log` in the store's directory). When a store is opened, an interrupted commit
+  is finished and temporary files of one that never committed are removed (logged as a
+  warning). `put(a, b)` used to be able to leave half its files written after a crash.
+
+### Changed
+
+- No more `os.sync()` (it synced every file system on the machine, also other
+  applications' files): each temporary file and directory is synced on its own.
+
+### Upgrading
+
+- `with store.batch():` becomes `with store.transaction():`. An exception in the block
+  now also undoes its deletes.
+
 ## 0.3.1 (2026-11-10)
 
 ### Changed

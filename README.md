@@ -87,15 +87,44 @@ for person in store.list(Person):
 store.delete(again)               # or store.delete(again.qid)
 ```
 
-Many puts at once (bulk loading) are much faster in a batch: one sync to disk
-at the end instead of one per file. Inside the batch `get()` sees what was
-put; an exception discards the whole batch.
+### Transactions
+
+Puts and deletes in a `transaction()` block are written together at its end, or
+not at all:
 
 ```python
-with store.batch():
-    for name in names:
-        store.put(Person.create(name=name))
+with store.transaction():
+    order.update(state="paid")
+    store.put(order, invoice)
+    store.delete(basket)
 ```
+
+- An exception in the block discards it: nothing is written, and the objects get
+  their old revisions back.
+- Inside the block `get()` sees its puts and deletes; `list()` does not, and
+  neither does `get()` in other threads until the block is done.
+- The store's lock is held for the whole block: other threads' puts and deletes
+  wait. Blocks can be nested; the outermost one commits.
+- It is also the fast way to load many objects: the files are synced together at
+  the end, instead of each put waiting for its own sync.
+
+### Crash safety
+
+Every change is a transaction (a single `put` or `delete` is one of its own), and a
+transaction is in the files completely or not at all, also when the process or the
+machine dies halfway:
+
+1. The new versions are written to temporary files (`<id>.tmp`) and synced to disk.
+2. When more than one file changes, `commit.log` (in the store's directory) lists
+   them and is synced. From this moment the transaction is committed.
+3. The temporary files are renamed into place and deleted files removed; the
+   directories are synced. A single file needs no log: its rename is atomic.
+4. `commit.log` is removed.
+
+When a store is opened, a `commit.log` that is still there is finished (step 3), and
+temporary files of a transaction that never committed are removed; both are logged as
+a warning. This happens once per process for a directory: a second `Store` on the same
+directory does not touch a commit that is still going on.
 
 `john` is stored in `data/Person/<id>.json`:
 

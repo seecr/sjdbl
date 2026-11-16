@@ -37,9 +37,9 @@ def make_store(tmp_path):
     return Store(path=tmp_path, models=[Item])
 
 
-def test_batch_writes_at_the_end(tmp_path):
+def test_transaction_writes_at_the_end(tmp_path):
     store = make_store(tmp_path)
-    with store.batch():
+    with store.transaction():
         items = [Item.create(name=f"item {nr}") for nr in range(10)]
         store.put(*items)
         assert not list(tmp_path.glob("Item/*.json"))  # nothing written yet
@@ -51,11 +51,11 @@ def test_batch_writes_at_the_end(tmp_path):
     assert items[3]["__rev__"] == again.get(items[3].qid)["__rev__"]
 
 
-def test_get_update_put_in_one_batch(tmp_path):
+def test_get_update_put_in_one_transaction(tmp_path):
     store = make_store(tmp_path)
     item = Item.create(name="a", count=0)
     store.put(item)
-    with store.batch():
+    with store.transaction():
         for _ in range(3):
             current = store.get(item.qid)
             current.update(count=current.count + 1)
@@ -63,12 +63,12 @@ def test_get_update_put_in_one_batch(tmp_path):
     assert 3 == make_store(tmp_path).get(item.qid).count
 
 
-def test_conflict_in_batch(tmp_path):
+def test_conflict_in_transaction(tmp_path):
     store = make_store(tmp_path)
     item = Item.create(name="a")
     store.put(item)
     stale = store.get(item.qid)
-    with store.batch():
+    with store.transaction():
         item.update(name="b")
         store.put(item)
         stale.update(name="c")
@@ -77,13 +77,13 @@ def test_conflict_in_batch(tmp_path):
     assert "b" == store.get(item.qid).name
 
 
-def test_exception_discards_the_batch(tmp_path):
+def test_exception_discards_the_transaction(tmp_path):
     store = make_store(tmp_path)
     item = Item.create(name="a")
     store.put(item)
     rev = item["__rev__"]
     with pytest.raises(RuntimeError):
-        with store.batch():
+        with store.transaction():
             item.update(name="b")
             store.put(item)
             store.put(Item.create(name="new"))
@@ -94,11 +94,11 @@ def test_exception_discards_the_batch(tmp_path):
     store.put(item)  # the object is usable again
 
 
-def test_nested_batch_and_delete(tmp_path):
+def test_nested_transaction_and_delete(tmp_path):
     store = make_store(tmp_path)
     keep, gone = Item.create(name="keep"), Item.create(name="gone")
-    with store.batch():
-        with store.batch():
+    with store.transaction():
+        with store.transaction():
             store.put(keep, gone)
         assert not list(tmp_path.glob("Item/*.json"))
         store.delete(gone)
