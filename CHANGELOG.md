@@ -21,6 +21,8 @@ Crash-safe transactions.
 
 ### Changed
 
+- The wheel only has the package itself (`sjdbl/`); it used to install `doc/`, `examples/` and
+  other directories of the repository into site-packages too.
 - No more `os.sync()` (it synced every file system on the machine, also other
   applications' files): each temporary file and directory is synced on its own.
 
