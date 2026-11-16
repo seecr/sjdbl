@@ -13,7 +13,7 @@ Crash-safe transactions.
 ### Added
 
 - `Store.transaction()`: all puts and deletes of the block are written at its end, or
-  none of them. See "Transactions" in the README.
+  none of them. See "Transactions" in `doc/reference.md`.
 - Crash safety: a transaction with more than one file is committed with a commit log
   (`commit.log` in the store's directory). When a store is opened, an interrupted commit
   is finished and temporary files of one that never committed are removed (logged as a
