@@ -81,6 +81,17 @@ class Field:
         )
 
     @classmethod
+    def set(cls, name):
+        # Like Field.json: a JSON string inside the record, read back as a set.
+        # Unsorted: sorting a million items doubles the time of a put.
+        return cls(
+            name=name,
+            default=set,
+            to_storage=lambda s: json.dumps(list(s)),
+            from_storage=lambda store, v: set(json.loads(v)) if v else set(),
+        )
+
+    @classmethod
     def xml(cls, name, default=None):
         return cls(
             name=name,

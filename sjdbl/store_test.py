@@ -180,6 +180,40 @@ def test_store_decimal(tmp_path):
     assert product_again.discount is None
 
 
+def test_store_set(tmp_path):
+    class Harvest(Base):
+        FIELDS = [Field.set("ids")]
+
+    store = Store(path=tmp_path, models=[Harvest])
+
+    harvest = Harvest.create()
+    assert harvest.ids == set()
+    harvest.ids.add("a")
+    another = Harvest.create()
+    assert another.ids == set(), "every object gets its own set"
+
+    harvest.update(ids={"a", "b", "c"})
+    store.put(harvest)
+
+    stored = json.loads((tmp_path / "Harvest" / f"{harvest.id}.json").read_text())
+    assert sorted(json.loads(stored["data"]["ids"])) == ["a", "b", "c"]
+
+    again = store.get(harvest.qid)
+    assert again.ids == {"a", "b", "c"}
+    assert isinstance(again.ids, set)
+
+    again.ids.discard("b")
+    store.put(again)
+    assert store.get(harvest.qid).ids == {"a", "c"}
+
+    for value in (None, ""):  # written by older code or by hand
+        path = tmp_path / "Harvest" / f"{harvest.id}.json"
+        stored = json.loads(path.read_text())
+        stored["data"]["ids"] = value
+        path.write_text(json.dumps(stored))
+        assert store.get(harvest.qid).ids == set()
+
+
 def test_put_failing_serialization_keeps_stored_object(tmp_path):
     store = Store(path=tmp_path, models=[Person])
 

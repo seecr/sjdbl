@@ -59,6 +59,7 @@ Available field types:
 | `Field.datetime(name, default=None)`  | `datetime`                | ISO string                   |
 | `Field.enum(name, enum, default)`     | `Enum` member             | the member's value           |
 | `Field.json(name, default=list)`      | any JSON-able structure   | JSON encoded as a string     |
+| `Field.set(name)`                     | `set` of str or int       | JSON list as a string        |
 | `Field.xml(name, default=None)`       | lxml tree                 | XML string                   |
 | `Field.uuid(name, default=new_uuid)`  | `str` (read-only)         | string                       |
 | `Field.id(name, default=None)`        | any                       | as is                        |

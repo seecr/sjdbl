@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 (2026-11-17)
+
+### Added
+
+- `Field.set(name)`: a Python `set`, stored like `Field.json` as a JSON list in a
+  string (unsorted: sorting a million items doubles the time of a put). Empty sets and
+  missing values read back as `set()`. Meant for large sets of ids, such as the
+  identifiers a harvester has sent: with a million ids a get takes about 150 ms and a
+  put 230 ms.
+
 ## 0.4.0 (2026-11-16)
 
 Crash-safe transactions.
