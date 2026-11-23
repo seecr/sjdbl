@@ -1,0 +1,39 @@
+name: Tests
+
+# Version tags are tested by the push of the commit itself; publish.yml handles the tag.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # setuptools_scm needs the tags
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip  # --group needs pip 25.1
+      - run: pip install -e . --group dev
+      - run: python -m pytest sjdbl
+      - name: The examples run
+        run: for f in examples/*.py; do python "$f" > /dev/null || exit 1; done
+
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m pip install --upgrade pip  # --group needs pip 25.1
+      - run: pip install --group dev
+      - run: flake8 sjdbl examples
+      - run: isort --check-only --diff sjdbl examples

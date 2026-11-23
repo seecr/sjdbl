@@ -3,8 +3,7 @@
 Stores Python objects as plain JSON files: one file per object, one directory per
 class. Crash-safe transactions, revisions against lost updates, lazy references,
 sequential numbers. No server, no query language: searching belongs in an index that
-can be rebuilt from the files at any time ([swindl](https://github.com/seecr/swindl)
-does both).
+can be rebuilt from the files at any time.
 
 ```python
 from pathlib import Path
@@ -33,8 +32,13 @@ with store.transaction():                    # all of it, or nothing
 - **Crash safe.** A transaction is in the files completely or not at all, also when the
   machine dies halfway.
 
-`doc/reference.md` is the reference; `examples/` has runnable scripts
-(`PYTHONPATH=. python examples/basic.py`); `CHANGELOG.md` says what changed.
+Install with `pip install sjdbl`. It needs Python 3.11 or newer, lxml and pytest
+(the tests are part of the package).
 
-Python 3.11 or newer and lxml. MIT licensed, see `LICENSE`. By
+The [reference](https://github.com/seecr/sjdbl/blob/master/doc/reference.md) describes
+everything; [examples](https://github.com/seecr/sjdbl/tree/master/examples) has runnable
+scripts; the [changelog](https://github.com/seecr/sjdbl/blob/master/CHANGELOG.md) says
+what changed.
+
+MIT licensed, see [LICENSE](https://github.com/seecr/sjdbl/blob/master/LICENSE). By
 [Seecr](https://seecr.nl).

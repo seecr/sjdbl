@@ -22,8 +22,14 @@ flake8 sjdbl examples && isort --check-only sjdbl examples
 PYTHONPATH=. python examples/basic.py     # run an example against this checkout
 ```
 
-`env/` is the virtualenv (see the seecr-python rebuild-venv skill), with
-`requirements-dev.txt` (flake8, isort).
+`env/` is the virtualenv (see the seecr-python rebuild-venv skill); the dev tools
+(flake8, isort) are the `dev` dependency group in `pyproject.toml`:
+`env/bin/pip install -e . --group dev`.
+
+Releasing: give the version a `## X.Y.Z (date)` section in `CHANGELOG.md`, then push
+the tag `X.Y.Z` to GitHub; `.github/workflows/publish.yml` builds it, uploads it to
+PyPI (trusted publishing) and makes the GitHub release. The tag is the version
+(setuptools-scm).
 
 The sjdbl installed in site-packages may be an older release; use
 `PYTHONPATH=.` (or `pip install -e .`) to test this checkout.

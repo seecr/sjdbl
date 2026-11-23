@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- setuptools-scm is no longer installed with sjdbl (it is only needed to build it); the
+  dependencies are lxml and pytest (the tests are part of the package). The dev tools
+  (flake8, isort) are the `dev` dependency group in `pyproject.toml`
+  (`pip install -e . --group dev`); `requirements-dev.txt` is gone.
+- The package metadata names the license as an SPDX expression (`MIT`).
+
+### Added
+
+- Published on GitHub (https://github.com/seecr/sjdbl) and PyPI (`pip install sjdbl`):
+  project URLs and classifiers in the metadata, tests in GitHub Actions, and a release
+  to PyPI for every version tag.
+
 ## 0.5.0 (2026-11-17)
 
 ### Added

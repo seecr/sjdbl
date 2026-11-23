@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools >= 84.2.1", "setuptools-scm >= 10.3.4"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,21 +8,42 @@ authors = [
     {name = "Thijs Janssen", email = "thijs@seecr.nl"},
     {name = "Johan Jonkers", email = "johan@seecr.nl"},
 ]
-description = "Seecr Json Database Lib"
+description = "Seecr Json Database Lib: Python objects as plain JSON files, with crash-safe transactions"
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = ["seecr", "json", "store"]
-license = {file = "LICENSE"}
+keywords = ["json", "store", "storage", "persistence", "transactions", "seecr"]
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
-    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: POSIX",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
     "lxml >= 6.1.3, < 7",
-    "pytest >= 9.1.1, < 10",
-    "setuptools-scm >= 10.2.1, < 11",
+    "pytest >= 9.2.0, < 10",
 ]
 dynamic = ["version"]
+
+[project.urls]
+Documentation = "https://github.com/seecr/sjdbl/blob/master/doc/reference.md"
+Source = "https://github.com/seecr/sjdbl"
+Issues = "https://github.com/seecr/sjdbl/issues"
+Changelog = "https://github.com/seecr/sjdbl/blob/master/CHANGELOG.md"
+
+[dependency-groups]
+dev = [
+    "flake8 >= 7.5.0, < 8",
+    "isort >= 9.0.2, < 10",
+]
 
 [tool.setuptools_scm]
 version_file = "sjdbl/_version.py"

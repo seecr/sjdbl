@@ -2,7 +2,7 @@
 
 SJDBL stores Python objects as plain JSON files: one file per object, one
 directory per class. It is a storage layer only. There is no query language;
-searching belongs in a separate index (for example swindl), which can be
+searching belongs in a separate index, which can be
 rebuilt from the store at any time.
 
 - [Requirements](#requirements)
@@ -26,7 +26,8 @@ Design choices:
 
 ## Requirements
 
-Python 3.11 or newer and lxml.
+Python 3.11 or newer, lxml and pytest (the tests, `*_test.py`, are part of the
+package). Install with `pip install sjdbl`.
 
 ## Defining models
 
@@ -279,7 +280,7 @@ Run them from the project root against this checkout, e.g.
   several processes on the same directory are not: the revision check and
   recovery assume one process.
 - **`list()` reads every file** of a class: for rebuilding an index, not for
-  searching. Searching is an index's job (swindl).
+  searching. Searching is an index's job.
 - **One file per object, one directory per class.** Fine for hundreds of
   thousands of objects per class on ext4, XFS or APFS.
 - **Durability:** `fsync` of files and directories; on macOS `fsync` does not
