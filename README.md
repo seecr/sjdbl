@@ -1,5 +1,8 @@
 # sjdbl – Seecr Json Database Lib
 
+[![Tests](https://github.com/seecr/sjdbl/actions/workflows/test.yml/badge.svg)](https://github.com/seecr/sjdbl/actions/workflows/test.yml)
+[![PyPI](https://img.shields.io/pypi/v/sjdbl.svg)](https://pypi.org/project/sjdbl/)
+
 Stores Python objects as plain JSON files: one file per object, one directory per
 class. Crash-safe transactions, revisions against lost updates, lazy references,
 sequential numbers. No server, no query language: searching belongs in an index that
